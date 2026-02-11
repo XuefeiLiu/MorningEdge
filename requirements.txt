@@ -1,0 +1,61 @@
+# Morning Edge Backend Dependencies
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn>=0.27.0
+
+# HTTP Client
+httpx>=0.26.0
+aiohttp>=3.9.0
+
+# Data Validation
+pydantic>=2.5.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# XML/RSS Parsing
+feedparser>=6.0.10
+lxml>=5.1.0
+
+# HTML parsing (SEC 10-K/10-Q)
+beautifulsoup4>=4.12.0
+
+# PDF extraction (macro KB)
+pymupdf>=1.24.0
+
+# Date/Time Handling
+python-dateutil>=2.8.2
+pytz>=2024.1
+tzdata>=2024.1
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.26.0
+
+# OpenAI Integration
+openai>=1.10.0
+
+# Google Gemini Integration
+google-genai>=1.61.0
+
+# Alpaca Market Data (real-time stock prices)
+alpaca-py>=0.43.0
+
+# CORS Support
+starlette>=0.35.0
+
+# Caching
+cachetools>=5.3.0
+
+# Database
+psycopg2-binary>=2.9.0
+
+# Rerank: local cross-encoder (free, no API cost)
+sentence-transformers>=2.2.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+supabase
