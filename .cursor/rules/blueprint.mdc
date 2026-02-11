@@ -1,0 +1,64 @@
+---
+alwaysApply: true
+---
+
+# Morning Edge Project Structure and Coding Guidelines
+                
+    ## Project Overview
+    This is a US stock pre-market briefing system with Python backend and React frontend.
+    
+    ## Programming Language
+    - **Backend**: Python
+    - **Frontend**: React
+    
+    ## Project Structure
+    ```
+    Morning_Edge/
+    ├── backend/                    # backend applications
+    │   ├── ...                     # Various function components of backend applications
+    │   
+    ├── frontend/                   # React frontend applications
+    │   ├── src/
+    │   │   └── index.js            # Main React application entry point         
+    │   ├── package.json            # React package configuration
+    │   ├── ...                     
+    │   
+    ├── .cursor/                    
+    │   ├── rules/                  # Cursor Rules
+    │       ├── blueprint.mdc       # Blueprint rules
+    │       ├── ...                 # Other rules
+    │
+    ├── data/                       # Data that the applications store
+    │   ├── ...
+    |
+    ├── .env                        # Environment variables to be loaded by load_dotenv()
+    ├── .gitignore                  # keep it as an empty file
+    ├── .gitkeep                    # Keep it as an empty file
+    ├── README.md                   # Project documentation
+    ├── requirements.txt            # Python dependencies
+    └── ...
+    ```
+    
+    ## Coding Guidelines
+    
+    ### Backend Development (Python)
+    - **Location**: All backend code must be written in the `backend/` folder
+    - **Dependencies**: Add Python packages to `requirements.txt` (root level)
+    - **Structure**: Follow best practices with proper routing, error handling, and API design
+    
+    ### Frontend Development (React)
+    - **Location**: All frontend code must be written in the `frontend/` folder
+    - **Main file**: `frontend/src/index.js` - contains the main React application entry point
+    - **Dependencies**: Add React packages to `frontend/package.json`
+    - **Structure**: Use React with modern hooks and functional components
+    
+    ### Code Organization
+    - Keep backend and frontend code strictly separated in their respective folders
+    - Backend API endpoints should be well-documented
+    - Follow consistent naming conventions within each technology stack
+    
+    ### Development Workflow
+    1. Backend changes: Work in `backend/` folder
+    2. Frontend changes: Work in `frontend/` folder
+    3. Cross-cutting concerns: Document in README.md
+    4. Environment setup: Use appropriate package managers (pip for Python, npm for JavaScript)

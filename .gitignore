@@ -1,0 +1,73 @@
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Virtual Environment
+venv/
+ENV/
+
+# Environment Variables
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.cursorrules
+.cursorignore
+.cursorindexingignore
+.cursor/debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# graph
+*.png
+
+# Txt files
+*.txt
+
+# Log files
+*.log
+
+# PDF files
+*.pdf
+
+# Frontend
+frontend/node_modules/
+frontend/package-lock.json
+
+# Outputs
+backend/storage/watchlist.json
+
+# Database files (users will have their own local databases)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3

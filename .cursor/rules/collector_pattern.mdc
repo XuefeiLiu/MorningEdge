@@ -1,0 +1,75 @@
+---
+alwaysApply: true
+---
+
+# Collector Pattern Guidelines
+
+## Creating New Collectors
+
+### For RSS-based Sources
+```python
+from backend.services.collectors.rss_collector import RSSCollector
+from backend.models import NewsItem
+
+class MyRSSCollector(RSSCollector):
+    def __init__(self):
+        feed_urls = ["https://example.com/feed"]
+        super().__init__(
+            name="my_rss",
+            feed_urls=feed_urls,
+            config={"max_summary_length": 500, "timeout": 15.0},
+            default_language="en"  # or "zh" for Chinese
+        )
+```
+
+### For API-based Sources
+```python
+from backend.services.collectors.base import BaseCollector
+from backend.models import NewsItem
+
+class MyAPICollector(BaseCollector):
+    def __init__(self):
+        super().__init__("my_api", source_type="news")
+        self.api_key = os.getenv("MY_API_KEY")
+        if not self.api_key:
+            self.mark_unavailable("MY_API_KEY not configured")
+    
+    async def collect(self, symbols, start_time, end_time) -> List[NewsItem]:
+        # Implementation
+        pass
+```
+
+## Required Fields for NewsItem
+
+- `id` - Unique identifier (format: `{source}_{unique_id}`)
+- `title` - News title (required)
+- `summary` - Optional summary/description
+- `source` - Source name (e.g., "Nasdaq RSS", "NewsNow-平台名")
+- `url` - Optional article URL
+- `published_at` - Publication datetime
+- `symbols` - List of related stock symbols
+- `category` - Category enum (COMPANY_NEWS, MACRO_EVENT, etc.)
+- `impact_level` - ImpactLevel enum (LOW, MEDIUM, HIGH)
+- `relevance_score` - Relevance score (0.0-1.0)
+- `language` - Language code ("en", "zh", or None)
+
+## Collector Registration
+
+1. Initialize collector in `BriefingGenerator.__init__()`
+2. Register in `BriefingGenerator._register_collectors()`
+3. Add configuration to `NEWS_SOURCES` in `config.py`
+4. Export in `backend/services/collectors/__init__.py`
+
+## Error Handling
+
+- Use `mark_unavailable(error)` when collector cannot function
+- Check `is_available` before using collector
+- Handle timeouts with `asyncio.wait_for()`
+- Log errors with context
+
+## Timeouts
+
+- Fast sources (RSS): 10-15 seconds
+- API sources: 15-30 seconds
+- Multi-platform sources (NewsNow): 60 seconds
+- Global aggregator timeout: 40 seconds max

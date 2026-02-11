@@ -1,0 +1,56 @@
+name: Daily Pipeline
+
+on:
+  schedule:
+    # Run daily at 12pm UTC (noon UTC)
+    - cron: '17 10 * * *'
+  workflow_dispatch:  # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # Timeout after 120 minutes (pipeline can take longer)
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Set up environment variables
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          DB_API_KEY: ${{ secrets.DB_API_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          FINANCIAL_DATASETS_API_KEY: ${{ secrets.FINANCIAL_DATASETS_API_KEY }}
+          MARKETAUX_API_KEY: ${{ secrets.MARKETAUX_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "Environment variables configured"
+      
+      - name: Run overnight pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          DB_API_KEY: ${{ secrets.DB_API_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          FINANCIAL_DATASETS_API_KEY: ${{ secrets.FINANCIAL_DATASETS_API_KEY }}
+          MARKETAUX_API_KEY: ${{ secrets.MARKETAUX_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m backend.pipeline.overnight_pipeline.runner

@@ -1,0 +1,97 @@
+---
+alwaysApply: true
+---
+
+# Conversation Summary: Multi-Source News Collection Enhancement
+
+## Overview
+Enhanced the Morning Edge news collection system to gather news from multiple sources (NewsNow API, Financial Datasets API) while maintaining the existing architecture and adding AI-based filtering.
+
+## Key Implementations
+
+### 1. Collector Architecture
+- **RSSCollector Base Class**: Created base class for all RSS-based collectors
+- **NasdaqRSSCollector**: Refactored to inherit from RSSCollector
+- **NewsNowCollector**: New collector for Chinese financial news platforms
+- **FinancialDatasetsCollector**: New collector for financialdatasets.ai API
+- **News Source Registry**: Centralized registry for managing collectors
+
+### 2. News Aggregation
+- **NewsAggregator**: Service for coordinating multi-source collection
+- Parallel execution with timeouts
+- Language-aware deduplication
+- Source priority-based sorting
+
+### 3. AI-Based Filtering
+- **FinancialNewsFilter**: Uses OpenAI API to classify financial news
+- Keyword fallback for when AI unavailable
+- Batch processing for efficiency
+- Supports English and Chinese keywords
+
+### 4. Collection Strategy
+- **Direct Collection**: Fast sources (Nasdaq RSS, Financial Datasets, NewsNow) collected directly
+- **Aggregator Collection**: Additional sources via aggregator with shorter timeout
+- **Fallback**: Direct collection if aggregator fails
+
+### 5. Macro Events
+- NewsNow items converted to MacroEvent objects
+- Displayed in "Macro Events" section
+- Filtered to only financial/economic news
+
+## Key Files Modified/Created
+
+### Created
+- `backend/services/collectors/rss_collector.py` - RSS base class
+- `backend/services/collectors/newsnow.py` - NewsNow collector
+- `backend/services/collectors/financial_datasets.py` - Financial Datasets collector
+- `backend/services/collectors/news_registry.py` - Source registry
+- `backend/services/news_aggregator.py` - News aggregation service
+- `backend/services/filters.py` - Added FinancialNewsFilter class
+
+### Modified
+- `backend/services/collectors/base.py` - Added collect_news() and source_type
+- `backend/services/collectors/nasdaq_rss.py` - Refactored to inherit from RSSCollector
+- `backend/services/collectors/alpha_vantage.py` - Added collect_news() method
+- `backend/services/briefing.py` - Updated to use NewsAggregator and direct collection
+- `backend/config.py` - Added NEWS_SOURCES and NEWS_AGGREGATION config
+- `backend/models.py` - Added language field to NewsItem
+- `backend/services/filters.py` - Enhanced with cross-source deduplication
+
+## Configuration
+
+### Environment Variables
+- `FINANCIAL_DATASETS_API_KEY` - Required for Financial Datasets collector
+- `OPENAI_API_KEY` - Optional, for AI-based filtering (falls back to keywords)
+
+### Config Settings
+- `NEWS_SOURCES` - Source configuration (enabled, priority, limits)
+- `NEWS_AGGREGATION` - Aggregation settings (timeouts, deduplication)
+- `RELEVANCE_THRESHOLD` - Set to 0.1 (lowered from 0.3)
+
+## Language Support
+- **English**: Nasdaq RSS, Alpha Vantage, Financial Datasets (English content)
+- **Chinese**: NewsNow platforms (all Chinese)
+- **Preservation**: Original language preserved, no translation
+- **Deduplication**: Language-aware (don't deduplicate across languages)
+
+## Debugging Enhancements
+- Comprehensive logging at each collection stage
+- Per-collector timeout tracking
+- Item count logging before/after filtering
+- Error tracebacks with context
+- Debug log in `.cursor/debug.log` (JSON format)
+
+## Common Issues Resolved
+1. **Aggregator timeout**: Reduced timeouts, added direct collection
+2. **No news items**: Lowered relevance threshold, improved error handling
+3. **No macro events**: Added direct NewsNow collection
+4. **Filtering too aggressive**: Lowered threshold, improved relevance scoring
+
+## Best Practices Established
+1. Use direct collection for critical/fast sources
+2. Use aggregator for additional sources with shorter timeout
+3. Always have fallback collection strategy
+4. Log extensively for debugging
+5. Handle timeouts gracefully
+6. Preserve original language
+7. Use AI filtering with keyword fallback

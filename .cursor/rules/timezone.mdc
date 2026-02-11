@@ -1,0 +1,29 @@
+---
+alwaysApply: true
+---
+
+# Timezone Rule: Use Local Time for Read, Compute, Compare, Display
+
+## Principle
+
+For the **entire project**, all time that is **read or loaded** should be **interpreted and used in the user's local timezone**. After that, all **computation**, **comparison**, and **frontend display** use **local time**.
+
+## Data Source Storage
+
+- **Do not change** how times are stored in the data source (database, APIs, files). Keep the existing storage format (e.g. UTC ISO strings) as-is.
+- Conversion to local time happens **at read/load time** in application code, not in the persisted format.
+
+## Downstream Usage
+
+Once timestamps are available:
+
+- **Backend**: May continue to work in UTC for storage and API contracts; timestamps in API responses are typically ISO UTC strings. The frontend is responsible for local display.
+- **API responses**: Return timestamps in standard format (e.g. ISO UTC). The frontend treats these as UTC and formats for local display.
+- **Frontend**: Display all times in the user's **local timezone**. Use a single formatter (e.g. `formatTimestampLocal`) that does **not** pass a fixed `timeZone` to `Intl.DateTimeFormat`, so the browser uses the user's local timezone.
+- **Comparisons**: When comparing dates/times in the frontend (e.g. date range filters), use `Date` objects built from the ISO strings. JavaScript's `Date` comparison uses UTC milliseconds internally; `getFullYear()`, `getMonth()`, `getDate()` etc. return **local** values. Ensure date range logic (e.g. `getDateRange`) produces boundaries that align with the user's local day when displayed.
+
+## Implementation Notes
+
+- **Backend (Python)**: Keep storing and returning UTC. No change required for backend timezone handling unless specific features need local-time boundaries.
+- **Frontend (React/TS)**: When receiving timestamps from the API, parse with `new Date(isoString)`. Format with `Intl.DateTimeFormat` **without** a `timeZone` option (or with the default), so all UI shows the user's local time. Use `formatTimestampLocal` consistently.
+- **Consistency**: Avoid mixing UTC display and local display in the same comparison or display path. Parse once, then use local time for UI and user-facing logic.
