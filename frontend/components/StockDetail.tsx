@@ -5,8 +5,9 @@ import { DarkDatePicker } from './DarkDatePicker';
 import { useLocale } from '../i18n/context';
 import { getDirectionColor } from '../constants';
 import TradingViewChart from './TradingViewChart';
-
-const API_BASE = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? 'http://localhost:8000';
+import NewsFilterPanel from './NewsFilterPanel';
+import LongStoryTimeline from './LongStoryTimeline';
+import { API_BASE } from '../api';
 
 interface StockDetailProps {
   stock: Stock;
@@ -1485,55 +1486,12 @@ const StockDetail: React.FC<StockDetailProps> = ({ stock }) => {
                 <>
                   {/* Left: list – desktop always; on mobile hidden when article open so article is full-screen */}
                   <div className={`w-full md:w-[min(420px,40%)] md:min-w-[300px] flex-shrink-0 overflow-y-auto border-r-0 md:border-r border-gray-800 p-4 sm:p-6 animate-in fade-in duration-200 max-h-[45vh] md:max-h-none ${hasStorylineDetail ? 'hidden md:block' : ''}`}>
-                    {/* Date / Timeframe */}
-                    <div className="flex flex-wrap items-center gap-4 mb-6">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t('stockDetail.date')}</span>
-                      <div className="flex flex-wrap gap-2">
-                        {(['1D', '2D', '3D', '1W'] as const).map((tf) => (
-                          <button
-                            key={tf}
-                            onClick={() => { setSelectedTimeframe(tf); setCustomRange({ start: '', end: '' }); }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${!customRange.start && !customRange.end && selectedTimeframe === tf ? 'bg-[#CCFF00] text-black border-[#CCFF00]' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-600'}`}
-                          >
-                            {tf}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <DarkDatePicker
-                          value={customRange.start || ''}
-                          onChange={(v) => { 
-                            setCustomRange(prev => ({ 
-                              start: v || '', 
-                              end: prev.end || '' 
-                            })); 
-                          }}
-                          placeholder="Start date"
-                          aria-label="Select start date"
-                        />
-                        <span className="text-xs text-gray-500">to</span>
-                        <DarkDatePicker
-                          value={customRange.end || ''}
-                          onChange={(v) => { 
-                            setCustomRange(prev => ({ 
-                              start: prev.start || '', 
-                              end: v || '' 
-                            })); 
-                          }}
-                          placeholder="End date"
-                          aria-label="Select end date"
-                        />
-                        {(customRange.start || customRange.end) && (
-                          <button
-                            onClick={() => setCustomRange({ start: '', end: '' })}
-                            className="px-2 py-1 text-xs text-gray-500 hover:text-white"
-                            aria-label="Clear date range"
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <NewsFilterPanel
+                      selectedTimeframe={selectedTimeframe}
+                      customRange={customRange}
+                      onTimeframeChange={setSelectedTimeframe}
+                      onCustomRangeChange={setCustomRange}
+                    />
                     {loadingStorylines && selectedCategories.includes('Stock') && <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">{t('stockDetail.loadingStorylines')}</div>}
                     {loadingMacroNews && selectedCategories.includes('Macro') && <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">{t('stockDetail.loadingMacroNews')}</div>}
                     {selectedCategories.includes('Stock') && (
@@ -2193,168 +2151,27 @@ const StockDetail: React.FC<StockDetailProps> = ({ stock }) => {
                       </div>
                     )}
                     {longStoryTimelineOpen && (
-                      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                        <div className="p-4 border-b border-gray-900 flex items-center justify-between flex-shrink-0">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest" style={{ backgroundColor: 'rgba(204, 255, 0, 0.15)', color: '#CCFF00' }}>{t('stockDetail.longStory')}</span>
-                          </div>
-                          <button onClick={handleCloseStorylineDetail} className="p-1.5 hover:bg-gray-800 rounded-full transition-colors text-gray-500 hover:text-white">
-                            <X size={18} />
-                          </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-10 scrollbar-hide min-h-0">
-                          {longStoryTimelineLoading && (
-                            <p className="text-[11px] text-gray-500 italic">{t('stockDetail.loadingTimeline')}</p>
-                          )}
-                          {!longStoryTimelineLoading && (
-                            <>
-                              <h2 className="text-2xl font-black leading-tight text-white">{longStoryTimelineTitle}</h2>
-                              {longStoryTimelineTheme && (
-                                <section>
-                                  <h3 className="text-[9px] font-black uppercase text-gray-600 tracking-[0.2em] mb-3">Theme</h3>
-                                  <div className="p-5 bg-[#0c0c0c] border border-gray-900 rounded-xl">
-                                    <p className="text-gray-400 text-sm leading-relaxed">{longStoryTimelineTheme}</p>
-                                  </div>
-                                </section>
-                              )}
-                              {longStoryTimelineSummary && (
-                                <section>
-                                  <h3 className="text-[9px] font-black uppercase text-gray-600 tracking-[0.2em] mb-3">{t('stockDetail.summary')}</h3>
-                                  <div className="p-5 bg-[#0c0c0c] border border-gray-900 rounded-xl">
-                                    <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{longStoryTimelineSummary}</p>
-                                  </div>
-                                </section>
-                              )}
-                              {longStoryTimeline && longStoryTimeline.length === 0 && (
-                                <p className="text-[11px] text-gray-500 italic">{t('stockDetail.noTimelineData')}</p>
-                              )}
-                              {longStoryTimeline && longStoryTimeline.length > 0 && (
-                                <section>
-                                  <h3 className="text-[9px] font-black uppercase text-gray-600 tracking-[0.2em] mb-3">{t('stockDetail.supportingArticles')}</h3>
-                                  <div className="space-y-10">
-                          {longStoryTimeline.map((m) => (
-                            <div key={m.month}>
-                              <h4 className="text-[9px] font-black uppercase text-[#CCFF00] tracking-[0.2em] mb-3">{m.month}</h4>
-                              <div className="space-y-8">
-                                {m.articles.map((a) => {
-                                  const isExpanded = expandedLongStoryArticleId === a.id;
-                                  const hasSummary = !!a.summary?.trim();
-                                  return (
-                                    <div key={a.id} className="relative flex items-start group">
-                                      <div className="w-[110px] flex-shrink-0 text-[9px] font-bold text-gray-600 uppercase pt-1 tracking-tighter text-right pr-8 leading-tight transition-colors group-hover:text-gray-400">
-                                        {a.published_at ? formatTimestamp(a.published_at) : '—'}
-                                      </div>
-                                      <div className="absolute left-[110px] top-2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border border-black z-10 bg-gray-600 group-hover:bg-[#CCFF00] transition-all" />
-                                      <div className="flex-1 pl-4 md:pl-12 pr-4">
-                                        <div className="p-4 bg-[#0c0c0c] border border-gray-900 rounded-xl hover:border-gray-700 transition-all flex items-start gap-3">
-                                          <button
-                                            type="button"
-                                            onClick={() => setExpandedLongStoryArticleId((id) => (id === a.id ? null : a.id))}
-                                            className="flex-shrink-0 p-0.5 rounded hover:bg-gray-800 text-gray-700 group-hover:text-[#CCFF00] transition-all"
-                                            title={hasSummary ? (isExpanded ? t('stockDetail.hideSummary') : t('stockDetail.showSummary')) : t('stockDetail.noSummary')}
-                                            disabled={!hasSummary}
-                                          >
-                                            <ChevronRight size={14} className={`mt-0.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                          </button>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                              <span className="text-[8px] font-black text-gray-600 uppercase">{a.source ?? 'Unknown'}</span>
-                                              {a.relation_type ? (
-                                                <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-gray-800 text-gray-400 flex-shrink-0">
-                                                  {a.relation_type.replace(/_/g, ' ')}
-                                                </span>
-                                              ) : null}
-                                            </div>
-                                            <h4 className="text-[11px] font-bold text-gray-400 group-hover:text-white leading-tight">{a.title}</h4>
-                                            {hasSummary && isExpanded && (
-                                              <>
-                                                <p className="mt-3 text-[11px] text-gray-500 leading-relaxed border-t border-gray-800 pt-3">
-                                                  {a.summary}
-                                                </p>
-                                                {a.url && (
-                                                  <a
-                                                    href={a.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="mt-3 inline-block text-[#CCFF00] hover:underline text-[11px] font-medium"
-                                                  >
-                                                    {t('stockDetail.viewOriginal')} →
-                                                  </a>
-                                                )}
-                                              </>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                                  </div>
-                                </section>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <LongStoryTimeline
+                        loading={longStoryTimelineLoading}
+                        title={longStoryTimelineTitle}
+                        summary={longStoryTimelineSummary}
+                        theme={longStoryTimelineTheme}
+                        timeline={longStoryTimeline}
+                        onClose={handleCloseStorylineDetail}
+                        formatTimestamp={formatTimestamp}
+                      />
                     )}
                   </div>
                 </>
               ) : (
               <div className="contents">
               <div className="relative min-h-full pb-32 animate-in fade-in duration-300">
-                {/* Date / Timeframe: 1D, 2D, 3D, 1W + calendar picker */}
-                <div className="flex flex-wrap items-center gap-4 mb-6">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t('stockDetail.date')}</span>
-                  <div className="flex flex-wrap gap-2">
-                    {(['1D', '2D', '3D', '1W'] as const).map((tf) => (
-                      <button
-                        key={tf}
-                        onClick={() => { setSelectedTimeframe(tf); setCustomRange({ start: '', end: '' }); }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${!customRange.start && !customRange.end && selectedTimeframe === tf ? 'bg-[#CCFF00] text-black border-[#CCFF00]' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-600'}`}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <DarkDatePicker
-                      value={customRange.start || ''}
-                      onChange={(v) => { 
-                        setCustomRange(prev => ({ 
-                          start: v || '', 
-                          end: prev.end || v || '' 
-                        })); 
-                      }}
-                      placeholder="Start date"
-                      aria-label="Select start date"
-                    />
-                    <span className="text-xs text-gray-500">to</span>
-                    <DarkDatePicker
-                      value={customRange.end || ''}
-                      onChange={(v) => { 
-                        setCustomRange(prev => ({ 
-                          start: prev.start || '', 
-                          end: v || '' 
-                        })); 
-                      }}
-                      placeholder="End date"
-                      aria-label="Select end date"
-                    />
-                    {(customRange.start || customRange.end) && (
-                      <button
-                        onClick={() => setCustomRange({ start: '', end: '' })}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-white"
-                        aria-label="Clear date range"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <NewsFilterPanel
+                  selectedTimeframe={selectedTimeframe}
+                  customRange={customRange}
+                  onTimeframeChange={setSelectedTimeframe}
+                  onCustomRangeChange={setCustomRange}
+                />
                 {loadingStorylines && selectedCategories.includes('Stock') && (
                   <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">Loading storylines…</div>
                 )}

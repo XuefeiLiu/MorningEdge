@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Calendar, X, ArrowLeft } from 'lucide-react';
 import { useLocale } from '../i18n';
-
-const API_BASE = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? 'http://localhost:8000';
+import { API_BASE } from '../api';
 
 /** Backend topic ids; labels come from i18n (macro.fx, macro.rates, etc.) */
 const TOPIC_IDS = ['FX', 'RATE', 'CREDIT', 'COMMODITY', 'EQUITY', 'Fiscal Policy', 'Monetary Policy', 'Trump'] as const;

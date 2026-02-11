@@ -14,8 +14,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Stock } from '../types';
 import { useLocale } from '../i18n/context';
-
-const API_BASE = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? 'http://localhost:8000';
+import { API_BASE } from '../api';
 
 interface CausalGraphViewProps {
   tickers: Stock[];

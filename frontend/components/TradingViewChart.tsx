@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { createChart, IChartApi, CandlestickSeries, HistogramSeries, ColorType, ISeriesApi } from 'lightweight-charts';
 import { Stock } from '../types';
-
-const API_BASE = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? 'http://localhost:8000';
+import { API_BASE } from '../api';
 
 interface CandlestickData {
   time: number;

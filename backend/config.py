@@ -243,3 +243,46 @@ MACRO_KB_RERANK_TOP_K = int(os.getenv("MACRO_KB_RERANK_TOP_K", "8"))
 MACRO_KB_BRIEF_TOP_K = int(os.getenv("MACRO_KB_BRIEF_TOP_K", "8"))
 # Min relevance_score (0-100) for raw items passed to synthesis; 0 = no filter. Raise to drop noisy/low-signal items
 MACRO_RAW_MIN_RELEVANCE = int(os.getenv("MACRO_RAW_MIN_RELEVANCE", "50"))
+
+
+def validate_config() -> None:
+    """Validate required configuration at startup. Raises RuntimeError if critical keys are missing."""
+    import logging
+    _logger = logging.getLogger(__name__)
+    errors: List[str] = []
+
+    # Required: database key (URL can fall back to default in supabase_client.py)
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("DB_API_KEY") or os.getenv("SUPABASE_KEY")
+    if not supabase_key:
+        errors.append("DB_API_KEY or SUPABASE_KEY is not set")
+    if errors:
+        raise RuntimeError(
+            "Missing required configuration:\n  - " + "\n  - ".join(errors)
+        )
+    if not supabase_url:
+        _logger.warning("SUPABASE_URL not set — using default URL from supabase_client.py")
+
+    # Warnings for optional but important keys
+    if not OPENAI_API_KEY:
+        _logger.warning("OPENAI_API_KEY not set — pipeline LLM calls and AI features will fail")
+    if not ALPHA_VANTAGE_API_KEY:
+        _logger.warning("ALPHA_VANTAGE_API_KEY not set — stock/macro news collection disabled")
+
+    # Log available data sources
+    sources = []
+    if OPENAI_API_KEY:
+        sources.append("OpenAI")
+    if GEMINI_API_KEY:
+        sources.append("Gemini")
+    if ALPHA_VANTAGE_API_KEY:
+        sources.append("Alpha Vantage")
+    if ALPACA_API_KEY:
+        sources.append("Alpaca")
+    if FINANCIAL_DATASETS_API_KEY:
+        sources.append("Financial Datasets")
+    if MASSIVE_API_KEY:
+        sources.append("Massive")
+    if MARKETAUX_API_KEY:
+        sources.append("Marketaux")
+    _logger.info("Available data sources: %s", ", ".join(sources) if sources else "none")
