@@ -17,7 +17,7 @@ A comprehensive pre-market briefing system that gathers, filters, and summarizes
 - **Database Integration**: Supabase (PostgreSQL) storage for stocks, news articles, and storylines
 - **NASDAQ 100 Support**: Built-in NASDAQ 100 ticker list with company information
 - **Overnight Pipeline** (current): Anchor-based story pipeline—store/embed data, cluster articles by embedding (Gemini as anchors), one LLM call per cluster for title/summary/risk, optional filing link and long-story merge/create. See `backend/pipeline/overnight_pipeline/README.md`.
-- **Legacy storyline pipeline**: Per-article RAG → create short storyline → optional long story (`backend/pipeline/pipeline` and `backend/pipeline/README.md`). Kept for reference; prefer the overnight pipeline for new runs.
+- **Legacy storyline pipeline**: Per-article RAG → create short storyline → optional long story (see `backend/pipeline/README.md` for shared modules). Prefer the overnight pipeline for new runs.
 - **Macro Digest**: Daily analyst reports (8 topics: FX, RATE, CREDIT, COMMODITY, EQUITY, Fiscal Policy, Monetary Policy, Trump) with mechanism, transmission, relative value; macro PDF KB ingest; on-demand impact report (factor mapping, portfolio impact). See `backend/pipeline/README.md` § Macro Digest.
 - **Embeddings**: Summary embeddings via OpenAI `text-embedding-3-small` for similarity search and storyline linking
 - **Storyline Management**: Deterministic storyline IDs (hash-based, like news articles), CONTEXT linking for historical articles used in summaries
@@ -35,7 +35,7 @@ A comprehensive pre-market briefing system that gathers, filters, and summarizes
 
 1. **Clone and navigate to the project**:
    ```bash
-   cd Morning_Edge
+   cd MorningEdge
    ```
 
 2. **Install backend dependencies**:
@@ -324,77 +324,68 @@ User comments are stored in browser localStorage with the key format: `news_comm
 ## Project Structure
 
 ```
-Morning_Edge/
+MorningEdge/
 ├── backend/
-│   ├── main.py                 # FastAPI application
-│   ├── config.py               # Configuration settings
-│   ├── models.py               # Pydantic data models
+│   ├── main.py                     # FastAPI app entry
+│   ├── config.py                   # Runtime config/env wiring
+│   ├── models.py                   # Shared data models
+│   ├── routers/                    # API route modules
+│   │   ├── briefing.py
+│   │   ├── news.py
+│   │   ├── stocks.py
+│   │   ├── stories.py
+│   │   ├── macro.py
+│   │   ├── watchlist.py
+│   │   └── system.py
 │   ├── services/
-│   │   ├── collectors/         # Data source collectors
-│   │   │   ├── base.py         # BaseCollector abstract class
-│   │   │   ├── rss_collector.py # RSSCollector base class
-│   │   │   ├── alpha_vantage.py
-│   │   │   ├── sec_edgar.py
-│   │   │   ├── nasdaq_rss.py
-│   │   │   ├── fred.py
-│   │   │   ├── financial_datasets.py
-│   │   │   ├── newsnow.py
-│   │   │   ├── massive.py
-│   │   │   ├── marketaux.py
-│   │   │   ├── openai.py
-│   │   │   ├── gemini.py
-│   │   │   ├── news_registry.py # News source registry
-│   │   │   └── mock_data.py    # Mock data + placeholder pseudocode
-│   │   ├── news_filters/        # News filtering system
-│   │   │   ├── base.py         # NewsFilter base class
-│   │   │   ├── filter_factory.py # Filter factory
-│   │   │   ├── keyword_filter.py
-│   │   │   ├── openai_filter.py
-│   │   │   └── gemini_filter.py
-│   │   ├── filters.py          # Data filtering & deduplication
-│   │   ├── news_aggregator.py  # Multi-source news aggregation
-│   │   ├── tagging.py          # Impact scoring & categorization
-│   │   ├── briefing.py         # Report generation
-│   │   └── ai_summaries.py     # OpenAI/Gemini integration
-│   ├── pipeline/                # News Storyline Pipeline
-│   │   ├── pipeline.py          # Main pipeline orchestrator
-│   │   ├── news_collection.py   # Collect & store news with embeddings
-│   │   ├── rag_retrieval.py     # Similar-article retrieval (RAG)
-│   │   ├── relationship_classifier.py  # LLM relationship classification
-│   │   └── storyline_manager.py # Create/update storylines, link articles
-│   ├── scripts/                 # Backfill & maintenance scripts
-│   │   ├── backfill_embeddings.py
-│   │   ├── remove_long_storylines.py
-│   │   └── remove_duplicate_news_articles.py
-│   └── storage/
-│       ├── supabase_client.py  # Supabase connection
-│       ├── stocks_save.py       # Save stocks to database
-│       ├── stocks_query.py      # Query stocks from database
-│       ├── stocks_main.py       # Main function for stocks operations
-│       ├── news_articles_save.py # Save news articles to database
-│       ├── news_articles_query.py # Query news articles from database
-│       ├── news_articles_main.py  # Main function for news operations
-│       ├── news_articles_daily.py # Daily news update (recent/overnight)
-│       ├── embedding_utils.py   # OpenAI summary embeddings
-│       ├── news_collectors.py     # External API news collectors
-│       ├── nasdaq100_tickers.py   # NASDAQ 100 ticker list
-│       ├── watchlist_manager.py
-│       └── watchlist.json         # Persisted watchlist
-├── frontend/                    # Frontend application (React + TypeScript + Vite)
+│   │   ├── collectors/             # Data collectors (RSS/APIs/LLMs)
+│   │   ├── news_filters/           # Keyword/Gemini/LLM filter implementations
+│   │   ├── ai_summaries.py
+│   │   ├── briefing.py
+│   │   ├── embedding_service.py
+│   │   ├── filters.py
+│   │   ├── news_aggregator.py
+│   │   └── tagging.py
+│   ├── pipeline/
+│   │   ├── overnight_pipeline/     # Current recommended pipeline
+│   │   │   ├── runner.py
+│   │   │   ├── clustering.py
+│   │   │   ├── anchors.py
+│   │   │   ├── story_llm.py
+│   │   │   ├── filing_link.py
+│   │   │   └── README.md
+│   │   ├── news_collection.py      # Legacy pipeline components
+│   │   ├── rag_retrieval.py
+│   │   ├── rerank.py
+│   │   ├── maybe_merge_or_create_long_story.py
+│   │   └── README.md
+│   ├── macro/                      # Macro digest collection/synthesis
+│   ├── storage/                    # Supabase read/write modules and jobs
+│   ├── scripts/                    # Backfills, migrations, maintenance
+│   ├── tests/
+│   └── utils/
+├── frontend/                       # React + TypeScript + Vite app
 │   ├── components/
 │   │   ├── Dashboard.tsx
-│   │   ├── Login.tsx
-│   │   ├── StockCard.tsx
-│   │   └── StockDetail.tsx      # Stock detail: Storyline tab, supporting articles (timeline, URL, summary toggle, relation badge)
-│   ├── App.tsx                  # Main React app
-│   ├── index.tsx                # Entry point
-│   ├── types.ts                 # TypeScript type definitions
-│   ├── vite.config.ts           # Vite configuration
+│   │   ├── StockDetail.tsx
+│   │   ├── StorylineTable.tsx
+│   │   ├── LongStoryTimeline.tsx
+│   │   ├── MacroView.tsx
+│   │   └── AskChat.tsx
+│   ├── i18n/
+│   ├── App.tsx
+│   ├── api.ts
+│   ├── index.tsx
+│   ├── constants.ts
+│   ├── types.ts
+│   ├── vite.config.ts
 │   └── package.json
-├── data/                       # Data storage directory
-├── .env                        # Environment variables (not in git)
-├── .env.example                # Example environment variables
-├── requirements.txt            # Python dependencies
+├── .github/workflows/
+│   └── daily_pipeline.yml
+├── .env.example
+├── Procfile
+├── pyproject.toml
+├── requirements.txt
 └── README.md
 ```
 
@@ -531,16 +522,10 @@ The **News Storyline Pipeline** (`backend/pipeline/`) turns recent and overnight
 7. **Link** – Writes to `long_story_article_links`. article_ticker is the linked article’s ticker; storyline_ticker is the storyline’s main ticker. New article is linked with its classified relation type; historical articles used in the summary are linked with CONTEXT.
 8. **Evolve** – For existing storylines, updates the storyline summary with the new article (only when not UNRELATED).
 
-**Run manually**:
-
-```bash
-python -m backend.pipeline.pipeline
-```
-
 **Backfill embeddings** (for existing articles without embeddings):
 
 ```bash
-python -m backend.storage.backfill_embeddings
+python -m backend.scripts.backfill_embeddings
 # Optional: --batch-size 1000 --update-concurrency 50
 ```
 
@@ -790,7 +775,7 @@ The daily macro news update script:
 
 ### Daily Pipeline
 
-A GitHub Actions workflow (`.github/workflows/daily_pipeline.yml`) runs the **legacy** News Storyline Pipeline daily at 12pm UTC (after the 5am daily news updates). It runs `python -m backend.pipeline.pipeline` (Task 1 collect+store, Task 2 per-article storylines). The **current** recommended story pipeline is the **overnight pipeline** (`python -m backend.pipeline.overnight_pipeline.runner`); see `backend/pipeline/overnight_pipeline/README.md`. To run that on a schedule, add a job that invokes the overnight runner with the desired `--asof-date`.
+A GitHub Actions workflow (`.github/workflows/daily_pipeline.yml`) runs the **overnight pipeline** daily (schedule in the workflow file). It runs `python -m backend.pipeline.overnight_pipeline.runner`. See `backend/pipeline/overnight_pipeline/README.md` for options (e.g. `--asof-date`).
 
 **Secrets**: Same as daily news update (including `OPENAI_API_KEY`). You can trigger the workflow manually from the Actions tab.
 
