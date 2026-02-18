@@ -55,8 +55,9 @@ def index_news_article(doc: Dict[str, Any]) -> None:
     }
     try:
         client.index(index=NEWS_ARTICLES_INDEX, id=doc_id, document=es_doc)
+        logger.debug("ES index news_article %s: ok", doc_id)
     except Exception as e:
-        logger.debug("ES index news_article %s: %s", doc_id, e)
+        logger.warning("ES index news_article %s failed: %s", doc_id, e)
 
 
 def index_filing_chunk(doc: Dict[str, Any]) -> None:
@@ -84,8 +85,9 @@ def index_filing_chunk(doc: Dict[str, Any]) -> None:
     }
     try:
         client.index(index=SEC_FILING_CHUNKS_INDEX, id=doc_id, document=es_doc)
+        logger.debug("ES index filing_chunk %s: ok", doc_id)
     except Exception as e:
-        logger.debug("ES index filing_chunk %s: %s", doc_id, e)
+        logger.warning("ES index filing_chunk %s failed: %s", doc_id, e)
 
 
 def index_macro_kb_chunk(doc: Dict[str, Any]) -> None:
@@ -108,8 +110,9 @@ def index_macro_kb_chunk(doc: Dict[str, Any]) -> None:
     }
     try:
         client.index(index=MACRO_KB_CHUNKS_INDEX, id=doc_id, document=es_doc)
+        logger.debug("ES index macro_kb_chunk %s: ok", doc_id)
     except Exception as e:
-        logger.debug("ES index macro_kb_chunk %s: %s", doc_id, e)
+        logger.warning("ES index macro_kb_chunk %s failed: %s", doc_id, e)
 
 
 def index_long_story(doc: Dict[str, Any]) -> None:
@@ -133,8 +136,9 @@ def index_long_story(doc: Dict[str, Any]) -> None:
     }
     try:
         client.index(index=LONG_STORIES_INDEX, id=doc_id, document=es_doc)
+        logger.debug("ES index long_story %s: ok", doc_id)
     except Exception as e:
-        logger.debug("ES index long_story %s: %s", doc_id, e)
+        logger.warning("ES index long_story %s failed: %s", doc_id, e)
 
 
 def bulk_index_news_articles(docs: List[Dict[str, Any]]) -> int:
@@ -171,12 +175,16 @@ def bulk_index_news_articles(docs: List[Dict[str, Any]]) -> int:
         return 0
     try:
         success, errors = helpers.bulk(client, actions, raise_on_error=False, request_timeout=60)
+        if success > 0:
+            logger.info("ES bulk index news_articles: indexed %d docs", success)
         if success == 0 and isinstance(errors, list) and errors:
             for err in errors[:3]:
                 logger.warning("ES bulk news_articles item error: %s", err)
+        if success < len(actions) and success > 0:
+            logger.warning("ES bulk news_articles: partial failure (%d/%d indexed)", success, len(actions))
         return success
     except Exception as e:
-        logger.warning("ES bulk index news_articles: %s", e)
+        logger.warning("ES bulk index news_articles failed: %s", e)
         return 0
 
 
@@ -216,12 +224,16 @@ def bulk_index_filing_chunks(docs: List[Dict[str, Any]]) -> int:
         return 0
     try:
         success, errors = helpers.bulk(client, actions, raise_on_error=False, request_timeout=60)
+        if success > 0:
+            logger.info("ES bulk index filing_chunks: indexed %d docs", success)
         if success == 0 and isinstance(errors, list) and errors:
             for err in errors[:3]:
                 logger.warning("ES bulk filing_chunks item error: %s", err)
+        if success < len(actions) and success > 0:
+            logger.warning("ES bulk filing_chunks: partial failure (%d/%d indexed)", success, len(actions))
         return success
     except Exception as e:
-        logger.warning("ES bulk index filing_chunks: %s", e)
+        logger.warning("ES bulk index filing_chunks failed: %s", e)
         return 0
 
 
@@ -256,12 +268,16 @@ def bulk_index_macro_kb_chunks(docs: List[Dict[str, Any]]) -> int:
         return 0
     try:
         success, errors = helpers.bulk(client, actions, raise_on_error=False, request_timeout=60)
+        if success > 0:
+            logger.info("ES bulk index macro_kb_chunks: indexed %d docs", success)
         if success == 0 and isinstance(errors, list) and errors:
             for err in errors[:3]:
                 logger.warning("ES bulk macro_kb_chunks item error: %s", err)
+        if success < len(actions) and success > 0:
+            logger.warning("ES bulk macro_kb_chunks: partial failure (%d/%d indexed)", success, len(actions))
         return success
     except Exception as e:
-        logger.warning("ES bulk index macro_kb_chunks: %s", e)
+        logger.warning("ES bulk index macro_kb_chunks failed: %s", e)
         return 0
 
 
@@ -297,10 +313,14 @@ def bulk_index_long_stories(docs: List[Dict[str, Any]]) -> int:
         return 0
     try:
         success, errors = helpers.bulk(client, actions, raise_on_error=False, request_timeout=60)
+        if success > 0:
+            logger.info("ES bulk index long_stories: indexed %d docs", success)
         if success == 0 and isinstance(errors, list) and errors:
             for err in errors[:3]:
                 logger.warning("ES bulk long_stories item error: %s", err)
+        if success < len(actions) and success > 0:
+            logger.warning("ES bulk long_stories: partial failure (%d/%d indexed)", success, len(actions))
         return success
     except Exception as e:
-        logger.warning("ES bulk index long_stories: %s", e)
+        logger.warning("ES bulk index long_stories failed: %s", e)
         return 0
