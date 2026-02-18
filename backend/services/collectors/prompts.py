@@ -51,7 +51,7 @@ You can include articles from other relevant sources (e.g. product launches, par
 Return the results as a JSON array. Each element is one topic (not one article). Each topic object should have:
 {{
     "topic": "Short topic label (e.g. Earnings, Guidance, Regulation)",
-    "title": "Same as topic or a short headline for the topic",
+    "title": "Headline for the topic (not just the topic label; e.g. a concise news headline)",
     "summary": "1–3 sentence aggregated summary for this topic (synthesizing multiple sources if needed)",
     "sources": "Comma-separated URLs or array of URLs used for this topic",
     "url": "Single primary URL if you prefer (or leave empty if using sources)",
@@ -69,8 +69,8 @@ IMPORTANT:
 
 Example format (one item per topic):
 [
-  {{"topic": "Earnings", "title": "Earnings", "summary": "Q4 results beat estimates; guidance raised.", "sources": "https://example.com/earnings", "url": "https://example.com/earnings", "source": "Bloomberg", "published_at": "2026-01-27"}},
-  {{"topic": "Regulation", "title": "Regulation", "summary": "EU opens probe; DOJ reviewing merger.", "sources": "https://a.com, https://b.com", "url": "", "source": "Gemini Generated", "published_at": "2026-01-26 – 2026-01-27"}}
+  {{"topic": "Earnings", "title": "Q4 Results Beat Estimates; Company Raises Guidance", "summary": "Q4 results beat estimates; guidance raised.", "sources": "https://example.com/earnings", "url": "https://example.com/earnings", "source": "Bloomberg", "published_at": "2026-01-27"}},
+  {{"topic": "Regulation", "title": "EU Opens Antitrust Probe; DOJ Reviewing Merger", "summary": "EU opens probe; DOJ reviewing merger.", "sources": "https://a.com, https://b.com", "url": "", "source": "Gemini Generated", "published_at": "2026-01-26 – 2026-01-27"}}
 ]"""
     
     return prompt
