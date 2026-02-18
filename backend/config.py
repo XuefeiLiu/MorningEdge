@@ -59,13 +59,8 @@ EMBEDDING_DIMENSION = 1536  # Must match DB vector(1536). text-embedding-3-small
 OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 EMBEDDING_TIMEOUT = float(os.getenv("EMBEDDING_TIMEOUT", "90"))  # Request timeout for OpenAI embeddings
 
-# Data collection settings
-MAX_NEWS_ITEMS_PER_SOURCE = 50
-MAX_FILINGS_PER_STOCK = 10
-
 # Storage paths
 WATCHLIST_FILE = "backend/storage/watchlist.json"
-DATA_DIR = "data"
 
 # OpenAI Settings
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # Can be overridden with OPENAI_MODEL env var (e.g., "gpt-5.2")
@@ -75,7 +70,7 @@ OPENAI_FILTER_MAX_CONCURRENT_BATCHES = int(os.getenv("OPENAI_FILTER_MAX_CONCURRE
 
 # Gemini Settings
 GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-pro-preview")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 GEMINI_MAX_TOKENS = 2000
 
 # Financial Datasets API
@@ -84,11 +79,9 @@ FINANCIAL_DATASETS_API_URL = "https://api.financialdatasets.ai/news/"
 
 # Massive API
 MASSIVE_API_KEY: Optional[str] = os.getenv("MASSIVE_API_KEY")
-MASSIVE_API_URL = "https://api.massive.com/v2/reference/news"
 
 # Marketaux API
 MARKETAUX_API_KEY: Optional[str] = os.getenv("MARKETAUX_API_KEY")
-MARKETAUX_API_URL = "https://api.marketaux.com/v1/news/all"
 
 # NewsNow API Configuration
 NEWSNOW_API_URL = "https://newsnow.busiyi.world/api/s"
@@ -154,7 +147,6 @@ NEWS_AGGREGATION = {
 
 
 # Pipeline Configuration
-PIPELINE_RUN_TIME = "07:00"  # 7am default
 # RAG: retrieve top K candidates then rerank to N by mode (local cross-encoder, free)
 RAG_TOP_K_CANDIDATES = int(os.getenv("RAG_TOP_K_CANDIDATES", "50"))  # Broad retrieval before rerank
 RAG_RETRIEVAL_LIMIT = int(os.getenv("RAG_RETRIEVAL_LIMIT", "6"))  # Legacy; pipeline uses RAG_TOP_K_CANDIDATES + rerank
