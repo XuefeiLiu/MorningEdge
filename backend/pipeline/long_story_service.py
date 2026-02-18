@@ -56,14 +56,32 @@ async def find_similar_long_story(
     ticker: str,
     embedding: List[float],
     threshold: float = None,
+    query_text: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Return the most similar long story for this ticker by embedding cosine similarity,
     or None if none above threshold. Expects long_stories.embedding to be stored as list or vector.
+    query_text: Optional text for hybrid search (BM25) when Elasticsearch is enabled.
     """
     if not embedding:
         return None
     thresh = threshold if threshold is not None else LONG_STORY_SIMILARITY_THRESHOLD
+    from backend.config import RAG_USE_ELASTICSEARCH
+    from backend.storage.elasticsearch_client import get_elasticsearch_client
+    from backend.services.elasticsearch_hybrid_search import find_similar_long_story_hybrid
+    if RAG_USE_ELASTICSEARCH:
+        es_client = get_elasticsearch_client()
+        if es_client is not None:
+            emb_list = embedding if isinstance(embedding, list) else list(embedding)
+            found = find_similar_long_story_hybrid(
+                es_client,
+                ticker=ticker,
+                query_embedding=emb_list,
+                query_text=query_text,
+                threshold=thresh,
+            )
+            if found is not None:
+                return found
     try:
         result = (
             supabase.table("long_stories")
@@ -265,6 +283,18 @@ Return a single JSON object with: "title", "theme", "summary". Keep title and th
             if emb is not None and len(emb) > 0:
                 vec = emb[0].tolist() if hasattr(emb[0], "tolist") else list(emb[0])
                 supabase.table("long_stories").update({"embedding": vec}).eq("id", long_story_id).execute()
+                try:
+                    from backend.storage.elasticsearch_sync import index_long_story
+                    index_long_story({
+                        "id": long_story_id,
+                        "ticker": ticker,
+                        "title": new_title,
+                        "canonical_theme": new_theme,
+                        "summary": new_summary,
+                        "embedding": vec,
+                    })
+                except Exception:
+                    pass
         logger.info("Refreshed long_story id=%s title/summary/embedding", long_story_id)
         return True
     except (json.JSONDecodeError, KeyError, Exception) as e:

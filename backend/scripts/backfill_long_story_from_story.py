@@ -127,6 +127,7 @@ async def run_backfill(
             story_id=story_id,
             story_embedding=embedding_list,
             delta=task_delta,
+            story_payload=story,
         )
         return ("ok", task_delta.get("storylines_created", 0), task_delta.get("storylines_updated", 0))
 

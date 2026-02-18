@@ -33,7 +33,9 @@ async def retrieve_chunks_async(
     if embeddings is None or embeddings.shape[0] == 0:
         return []
     embedding = embeddings[0].tolist()
-    chunks = search_chunks_similar(supabase, embedding, limit=top_k, book_id=book_id)
+    chunks = search_chunks_similar(
+        supabase, embedding, limit=top_k, book_id=book_id, query_text=query_text.strip()
+    )
     if rerank_top is not None and rerank_top > 0 and len(chunks) > rerank_top:
         chunks = chunks[:rerank_top]
     return chunks

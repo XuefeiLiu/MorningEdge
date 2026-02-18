@@ -143,6 +143,17 @@ The system uses Supabase (PostgreSQL) for data storage. Before running the appli
 
 See `.env.example` for detailed descriptions of each variable.
 
+### Optional: Elasticsearch hybrid RAG
+
+When `ELASTICSEARCH_URL` is set and `RAG_USE_ELASTICSEARCH=true`, all RAG retrieval (news, filing chunks, macro KB, long stories) uses Elasticsearch for **hybrid search** (keyword BM25 + vector kNN). If the ES client is unavailable, the app falls back to Supabase/pgvector.
+
+- **Indices**: `morningedge_news_articles`, `morningedge_sec_filing_chunks`, `morningedge_macro_kb_chunks`, `morningedge_long_stories` (created automatically on first use or by backfill).
+- **Backfill**: To index existing Supabase data into ES, run:
+  ```bash
+  python -m backend.scripts.backfill_elasticsearch_rag [--batch-size 500] [--skip-news] [--skip-filing] [--skip-macro] [--skip-long-stories]
+  ```
+- **Sync on write**: When ES is enabled, new or updated rows in `news_articles`, `sec_filing_chunks`, `macro_kb_chunks`, and `long_stories` (on embedding update) are indexed to ES automatically.
+
 ## Data Sources
 
 ### Currently Implemented

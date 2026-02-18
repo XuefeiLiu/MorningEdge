@@ -178,6 +178,11 @@ OPENAI_GENERATED_SOURCE = "OpenAI Generated"
 # RAG: do not use articles with these sources when retrieving similar articles (AI-generated summaries).
 RAG_EXCLUDED_SOURCES: List[str] = [GEMINI_GENERATED_SOURCE, OPENAI_GENERATED_SOURCE]
 
+# Elasticsearch (optional): hybrid RAG (BM25 + kNN). Connect with URL + API key (Elastic Cloud).
+ELASTICSEARCH_URL: Optional[str] = os.getenv("ELASTICSEARCH_URL", "").strip() or None
+ELASTICSEARCH_API_KEY: Optional[str] = os.getenv("ELASTICSEARCH_API_KEY", "").strip() or None
+RAG_USE_ELASTICSEARCH: bool = bool(ELASTICSEARCH_URL)
+
 
 def is_gemini_generated(collector: str = None, source: str = None) -> bool:
     """True if the article source is the Gemini-generated marker (source returned by get_stock_news_prompt). Such articles are not saved to news_articles and get no long story."""

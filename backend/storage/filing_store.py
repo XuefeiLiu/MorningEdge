@@ -165,6 +165,12 @@ async def store_filing_chunks(
         try:
             supabase.table("sec_filing_chunks").insert(batch).execute()
             stored += len(batch)
+            try:
+                from backend.storage.elasticsearch_sync import index_filing_chunk
+                for row in batch:
+                    index_filing_chunk(row)
+            except Exception:
+                pass
         except Exception as e:
             logger.error(f"store_filing_chunks batch failed: {e}")
     return stored

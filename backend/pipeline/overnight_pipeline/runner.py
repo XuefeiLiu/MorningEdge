@@ -372,6 +372,7 @@ async def run_overnight_pipeline(
                 story_id=story_id,
                 story_embedding=story_embedding_list,
                 delta=task_delta,
+                story_payload=story_payload,
             )
             return (task_delta.get("storylines_created", 0), task_delta.get("storylines_updated", 0))
 

@@ -86,6 +86,7 @@ async def retrieve_similar_filing_chunks(
     sections: Optional[List[str]] = None,
     use_hybrid_score: bool = True,
     only_most_recent_filing: bool = False,
+    query_text: Optional[str] = None,
 ) -> List[Dict]:
     """
     Retrieve similar filing chunks by cosine similarity for given tickers.
@@ -97,6 +98,7 @@ async def retrieve_similar_filing_chunks(
 
     Optionally filter by doc_type, section. When use_hybrid_score is True,
     final_score = similarity * w_sim + recency_score * w_rec + doc_priority * w_doc.
+    query_text: Optional text for hybrid search (BM25) when Elasticsearch is enabled.
 
     Returns:
         List of dicts: id, filing_id, ticker, chunk_index, text, similarity, final_score,
@@ -113,6 +115,60 @@ async def retrieve_similar_filing_chunks(
     tickers_upper = [t.strip().upper() for t in tickers if t]
     if not tickers_upper:
         return []
+
+    # Elasticsearch hybrid path (when enabled)
+    from backend.config import RAG_USE_ELASTICSEARCH
+    from backend.storage.elasticsearch_client import get_elasticsearch_client
+    from backend.services.elasticsearch_hybrid_search import search_filing_chunks_hybrid
+    if RAG_USE_ELASTICSEARCH:
+        es_client = get_elasticsearch_client()
+        if es_client is not None:
+            embedding_list = query_embedding if isinstance(query_embedding, list) else q.tolist()
+            filing_ids_filter: Optional[List[int]] = None
+            if only_most_recent_filing:
+                try:
+                    fresult = (
+                        supabase.table("sec_filings")
+                        .select("id")
+                        .in_("ticker", tickers_upper)
+                        .order("filed_date", desc=True)
+                        .limit(2)
+                        .execute()
+                    )
+                    filing_ids_filter = [int(r["id"]) for r in (fresult.data or []) if r.get("id") is not None]
+                except Exception:
+                    pass
+            chunks = search_filing_chunks_hybrid(
+                es_client,
+                query_text=query_text,
+                query_embedding=embedding_list,
+                tickers=tickers_upper,
+                limit=limit,
+                doc_types=doc_types,
+                sections=sections,
+                only_most_recent_filing=only_most_recent_filing,
+                filing_ids=filing_ids_filter,
+            )
+            if chunks is not None:
+                if use_hybrid_score and chunks:
+                    reference = datetime.now(timezone.utc)
+                    for c in chunks:
+                        meta = {"form_type": c.get("form_type"), "filed_date": c.get("filed_date")}
+                        rec = _recency_score(_filed_date_parse(meta.get("filed_date")), reference)
+                        doc_p = _doc_priority(meta.get("form_type"), _filed_date_parse(meta.get("filed_date")), reference)
+                        sim = c.get("similarity") or 0.0
+                        from backend.config import (
+                            RAG_FILING_SIMILARITY_WEIGHT,
+                            RAG_FILING_RECENCY_WEIGHT,
+                            RAG_FILING_DOC_PRIORITY_WEIGHT,
+                        )
+                        c["final_score"] = (
+                            sim * RAG_FILING_SIMILARITY_WEIGHT
+                            + rec * RAG_FILING_RECENCY_WEIGHT
+                            + doc_p * RAG_FILING_DOC_PRIORITY_WEIGHT
+                        )
+                    chunks.sort(key=lambda x: x.get("final_score", 0), reverse=True)
+                return chunks
 
     candidate_limit = limit * CANDIDATE_MULTIPLIER
     filing_meta: Dict[int, Dict] = {}

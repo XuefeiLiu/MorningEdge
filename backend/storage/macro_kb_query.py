@@ -92,15 +92,32 @@ def search_chunks_similar(
     embedding: List[float],
     limit: int = 20,
     book_id: Optional[int] = None,
+    query_text: Optional[str] = None,
 ) -> List[Dict]:
     """
-    Vector similarity search on macro_kb_chunks.embedding via RPC match_macro_kb_chunks.
-    Returns chunks ordered by similarity (cosine). Run macro_kb_match_rpc.sql if RPC is missing.
+    Vector similarity search on macro_kb_chunks.embedding via RPC match_macro_kb_chunks,
+    or Elasticsearch hybrid (BM25 + kNN) when RAG_USE_ELASTICSEARCH is enabled.
+    Returns chunks ordered by similarity (cosine). query_text used for BM25 when ES enabled.
     """
-    if not supabase:
-        supabase = get_supabase_client()
     if not embedding or len(embedding) != 1536:
         return []
+    from backend.config import RAG_USE_ELASTICSEARCH
+    from backend.storage.elasticsearch_client import get_elasticsearch_client
+    from backend.services.elasticsearch_hybrid_search import search_macro_kb_hybrid
+    if RAG_USE_ELASTICSEARCH:
+        es_client = get_elasticsearch_client()
+        if es_client is not None:
+            chunks = search_macro_kb_hybrid(
+                es_client,
+                query_text=query_text,
+                query_embedding=embedding,
+                limit=limit,
+                book_id=book_id,
+            )
+            if chunks is not None:
+                return chunks
+    if not supabase:
+        supabase = get_supabase_client()
     try:
         params = {"query_embedding": embedding, "match_count": limit}
         if book_id is not None:

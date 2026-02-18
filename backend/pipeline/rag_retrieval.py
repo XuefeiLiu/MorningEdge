@@ -244,6 +244,7 @@ async def retrieve_similar_news(
     max_per_ticker_per_day: int = DEFAULT_MAX_PER_TICKER_PER_DAY,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
+    query_text: Optional[str] = None,
 ) -> List[Dict]:
     """
     Retrieve similar historical news articles using embedding similarity
@@ -261,6 +262,7 @@ async def retrieve_similar_news(
         max_per_ticker_per_day: Max articles per (ticker, date) before applying limit. Default 2.
         start_date: Optional; only articles with published_at >= start_date.
         end_date: Optional; only articles with published_at <= end_date.
+        query_text: Optional text for hybrid search (BM25); used when Elasticsearch is enabled.
 
     Returns:
         List of article dicts with similarity scores, ordered by similarity
@@ -295,6 +297,28 @@ async def retrieve_similar_news(
         if new_norm == 0:
             logger.warning("New article embedding has zero norm, skipping similarity search")
             return []
+
+        # Elasticsearch hybrid path (when enabled)
+        from backend.config import RAG_USE_ELASTICSEARCH
+        from backend.storage.elasticsearch_client import get_elasticsearch_client
+        from backend.services.elasticsearch_hybrid_search import search_news_hybrid
+        if RAG_USE_ELASTICSEARCH:
+            es_client = get_elasticsearch_client()
+            if es_client is not None:
+                embedding_list = new_article_embedding if isinstance(new_article_embedding, list) else new_embedding.tolist()
+                articles = search_news_hybrid(
+                    es_client,
+                    query_text=query_text,
+                    query_embedding=embedding_list,
+                    tickers=tickers_ordered,
+                    start_date=start_date,
+                    end_date=end_date,
+                    exclude_article_ids=exclude_set,
+                    limit=limit,
+                    max_per_ticker_per_day=max_per_ticker_per_day,
+                )
+                if articles is not None:
+                    return articles
 
         # Per-ticker fetch size: enough candidates after merge (plan: limit * 2 or * 3 per ticker)
         fetch_limit = max(limit * 2, limit * 3)

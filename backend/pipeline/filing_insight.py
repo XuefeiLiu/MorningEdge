@@ -203,6 +203,7 @@ async def create_filing_insight_for_storyline(
         query_embedding=query_embedding,
         limit=FILING_INSIGHT_TOP_K,
         only_most_recent_filing=not use_timeline,
+        query_text=query_text,
     )
     if not chunks:
         logger.debug(f"No filing chunks for {ticker}, skipping filing insight")

@@ -59,6 +59,7 @@ async def maybe_merge_or_create_long_story(
     story_id: Optional[int] = None,
     story_embedding: Optional[List[float]] = None,
     delta: Optional[Dict[str, int]] = None,
+    story_payload: Optional[Dict[str, Any]] = None,
 ) -> Optional[int]:
     """
     Merge into or create a long story. Callers pass articles as a list of (article_id, article).
@@ -81,7 +82,21 @@ async def maybe_merge_or_create_long_story(
     embedding = story_embedding
     ticker_upper = ticker.strip().upper()
 
-    similar = await find_similar_long_story(supabase, ticker, embedding)
+    query_text = None
+    if story_payload:
+        t = (story_payload.get("title") or "").strip()
+        s = (story_payload.get("summary") or "").strip()
+        combined = " ".join(p for p in (t, s) if p).strip()
+        if combined:
+            query_text = combined
+    elif articles:
+        first_art = articles[0][1]
+        t = (first_art.get("title") or "").strip()
+        s = (first_art.get("summary") or "").strip()
+        combined = " ".join(p for p in (t, s) if p).strip()
+        if combined:
+            query_text = combined
+    similar = await find_similar_long_story(supabase, ticker, embedding, query_text=query_text)
 
     if similar:
         long_story_id = similar["id"]
@@ -172,6 +187,18 @@ async def maybe_merge_or_create_long_story(
                     if emb is not None and len(emb) > 0:
                         vec = emb[0].tolist() if hasattr(emb[0], "tolist") else list(emb[0])
                         supabase.table("long_stories").update({"embedding": vec}).eq("id", long_story_id).execute()
+                        try:
+                            from backend.storage.elasticsearch_sync import index_long_story
+                            index_long_story({
+                                "id": long_story_id,
+                                "ticker": ticker_upper,
+                                "title": rdata.get("title"),
+                                "canonical_theme": rdata.get("canonical_theme"),
+                                "summary": rdata.get("summary"),
+                                "embedding": vec,
+                            })
+                        except Exception:
+                            pass
             except Exception as emb_e:
                 logger.warning("Could not set embedding on long_story %s: %s", long_story_id, emb_e)
     except Exception as e:

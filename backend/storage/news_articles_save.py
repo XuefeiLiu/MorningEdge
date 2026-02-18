@@ -157,9 +157,14 @@ def save_articles(
             # If URL exists, conflict is on (ticker, url)
             # Otherwise, conflict is on (ticker, published_at, title)
             result = supabase.table("news_articles").insert(article_data).execute()
-            
+
             if result.data:
                 inserted += 1
+                try:
+                    from backend.storage.elasticsearch_sync import index_news_article
+                    index_news_article(article_data)
+                except Exception:
+                    pass
         except Exception as e:
             # Supabase returns error for conflicts, which is expected for duplicates
             error_msg = str(e).lower()

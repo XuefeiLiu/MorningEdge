@@ -82,6 +82,11 @@ def upsert_chunk(
         row["embedding"] = embedding
     try:
         supabase.table("macro_kb_chunks").upsert(row, on_conflict="id").execute()
+        try:
+            from backend.storage.elasticsearch_sync import index_macro_kb_chunk
+            index_macro_kb_chunk(row)
+        except Exception:
+            pass
         return db_id
     except Exception as e:
         logger.error(f"Failed to upsert macro_kb_chunk book_id={book_id} idx={chunk_index}: {e}")
