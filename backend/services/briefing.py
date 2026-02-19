@@ -24,7 +24,7 @@ from backend.models import (
 )
 from backend.services.collectors import (
     AlphaVantageCollector, SECEdgarCollector, NasdaqRSSCollector,
-    FREDCollector, MockDataCollector, NewsNowCollector, FinancialDatasetsCollector,
+    FREDCollector, NewsNowCollector, FinancialDatasetsCollector,
     NewsSourceConfig, news_registry
 )
 from backend.services.news_aggregator import NewsAggregator
@@ -357,7 +357,6 @@ class BriefingGenerator:
         self.sec_edgar = SECEdgarCollector()
         self.nasdaq_rss = NasdaqRSSCollector()
         self.fred = FREDCollector()
-        self.mock_collector = MockDataCollector()
         
         # Initialize new collectors
         self.newsnow = NewsNowCollector(
@@ -456,7 +455,6 @@ class BriefingGenerator:
         symbols: List[str],
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        use_mock: bool = False
     ) -> BriefingReport:
         """
         Generate a complete pre-market briefing report.
@@ -465,7 +463,6 @@ class BriefingGenerator:
             symbols: List of stock symbols to include
             start_time: Optional custom start time
             end_time: Optional custom end time
-            use_mock: Force use of mock data
             
         Returns:
             Complete BriefingReport with all data and summaries
@@ -489,16 +486,19 @@ class BriefingGenerator:
         
         # Collect data from all sources
         try:
-            if use_mock or not self._has_real_sources():
-                raw_data = await self._collect_mock_data(symbols, window_start, window_end)
-            else:
-                raw_data = await self._collect_real_data(symbols, window_start, window_end)
+            raw_data = await self._collect_real_data(symbols, window_start, window_end)
         except asyncio.CancelledError as ce:
             logger.error(f"Briefing generation was cancelled: {ce}")
             raise  # Re-raise CancelledError to propagate properly
         except Exception as e:
-            logger.warning(f"Data collection failed, using mock: {e}")
-            raw_data = await self._collect_mock_data(symbols, window_start, window_end)
+            logger.warning(f"Data collection failed, returning empty report: {e}")
+            raw_data = {
+                "news": [],
+                "macro_events": [],
+                "technical_data": [],
+                "sentiment": [],
+                "sec_filings": [],
+            }
         
         # Process and filter data
         processed = await self._process_data(raw_data, symbols, window_start, window_end)
@@ -534,30 +534,13 @@ class BriefingGenerator:
         
         return report
     
-    def _has_real_sources(self) -> bool:
-        """Check if any real data sources are available."""
-        return (
-            self.alpha_vantage.is_available or
-            True  # SEC and FRED are always available (free)
-        )
-    
-    async def _collect_mock_data(
-        self,
-        symbols: List[str],
-        start_time: datetime,
-        end_time: datetime
-    ) -> dict:
-        """Collect data from mock collector."""
-        logger.info("Using mock data collector")
-        return await self.mock_collector.collect(symbols, start_time, end_time)
-    
     async def _collect_real_data(
         self,
         symbols: List[str],
         start_time: datetime,
         end_time: datetime
     ) -> dict:
-        """Collect data from real sources with fallback to mock."""
+        """Collect data from real sources."""
         raw_data = {
             "news": [],
             "macro_events": [],
@@ -719,17 +702,6 @@ class BriefingGenerator:
                 raw_data["sec_filings"].extend(result if result else [])
             elif source_name == "fred":
                 raw_data["macro_events"].extend(result if result else [])
-        
-        # Fall back to mock for missing data
-        if not raw_data["technical_data"]:
-            logger.info("No real price data, using mock")
-            mock_data = await self.mock_collector.collect(symbols, start_time, end_time)
-            raw_data["technical_data"] = mock_data.get("technical_data", [])
-        
-        if not raw_data["sentiment"]:
-            logger.info("No real sentiment data, using mock")
-            mock_data = await self.mock_collector.collect(symbols, start_time, end_time)
-            raw_data["sentiment"] = mock_data.get("sentiment", [])
         
         return raw_data
     

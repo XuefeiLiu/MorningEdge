@@ -30,7 +30,7 @@ async def get_config():
     if ALPHA_VANTAGE_API_KEY:
         data_sources.append("Alpha Vantage (configured)")
     else:
-        data_sources.append("Alpha Vantage (mock fallback)")
+        data_sources.append("Alpha Vantage (not configured)")
 
     return ConfigResponse(
         alpha_vantage_configured=bool(ALPHA_VANTAGE_API_KEY),

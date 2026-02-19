@@ -206,13 +206,9 @@ All AI filters include automatic keyword fallback when AI services are unavailab
 - **Language Preservation**: Original language is preserved in UI (no translation)
 - **Language-Aware Deduplication**: Items are not deduplicated across languages
 
-### Mock Data Fallback
-
-When real data sources are unavailable or not configured, the system automatically falls back to realistic mock data. This ensures the system works for development and demonstration purposes.
-
 ### Placeholder Sources (Future Implementation)
 
-The following data sources have pseudocode placeholders in `backend/services/collectors/mock_data.py`:
+The following data sources are candidates for future implementation:
 
 #### News Sources
 ```python
@@ -800,7 +796,7 @@ A GitHub Actions workflow (`.github/workflows/daily_pipeline.yml`) runs the **ov
 - OpenAI API: Rate limits and costs apply (check your plan)
 - Gemini API: Rate limits apply (check your plan)
 - Real-time prices may have 15-minute delay on free tiers
-- Social sentiment currently uses mock data (real APIs require paid subscriptions)
+- Social sentiment is empty unless a real API is configured (e.g. paid subscriptions)
 - NewsNow API: Free but may have rate limits
 
 ## License

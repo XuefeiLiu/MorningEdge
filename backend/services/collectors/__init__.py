@@ -5,7 +5,6 @@ from .alpha_vantage import AlphaVantageCollector
 from .sec_edgar import SECEdgarCollector
 from .nasdaq_rss import NasdaqRSSCollector
 from .fred import FREDCollector
-from .mock_data import MockDataCollector
 from .newsnow import NewsNowCollector
 from .financial_datasets import FinancialDatasetsCollector
 from .openai import OpenAICollector
@@ -20,7 +19,6 @@ __all__ = [
     "SECEdgarCollector",
     "NasdaqRSSCollector",
     "FREDCollector",
-    "MockDataCollector",
     "NewsNowCollector",
     "FinancialDatasetsCollector",
     "OpenAICollector",

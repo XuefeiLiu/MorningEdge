@@ -21,7 +21,6 @@ router = APIRouter()
 async def get_briefing(
     start_time: Optional[datetime] = Query(None, description="Start of data collection window"),
     end_time: Optional[datetime] = Query(None, description="End of data collection window"),
-    use_mock: bool = Query(False, description="Force use of mock data")
 ):
     """Generate a pre-market briefing report for the current watchlist."""
     symbols = watchlist_manager.get_symbols()
@@ -29,7 +28,7 @@ async def get_briefing(
         raise HTTPException(status_code=400, detail="Watchlist is empty. Add symbols first.")
     try:
         report = await briefing_generator.generate(
-            symbols=symbols, start_time=start_time, end_time=end_time, use_mock=use_mock
+            symbols=symbols, start_time=start_time, end_time=end_time
         )
         return report
     except asyncio.CancelledError as ce:
@@ -45,12 +44,11 @@ async def get_stock_briefing(
     symbol: str,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
-    use_mock: bool = False
 ):
     """Generate a briefing report for a single stock."""
     try:
         report = await briefing_generator.generate(
-            symbols=[symbol.upper()], start_time=start_time, end_time=end_time, use_mock=use_mock
+            symbols=[symbol.upper()], start_time=start_time, end_time=end_time
         )
         if report.stock_summaries:
             return {

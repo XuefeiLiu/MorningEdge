@@ -71,8 +71,6 @@ const CATEGORY_COLORS: Record<NewsCategory, string> = {
   Sentiment: '#B266FF'  // Purple
 };
 
-const SOURCES = ['Bloomberg', 'WSJ', 'Reuters', 'CNBC', 'Financial Times', 'MarketWatch', 'Yahoo Finance', 'The Verge', 'Barron\'s', 'Forbes'];
-
 /** Format ISO timestamp for UI display in local timezone. */
 function formatTimestampLocal(isoString: string): string {
   const date = new Date(isoString);
@@ -87,69 +85,6 @@ function formatTimestampLocal(isoString: string): string {
   });
   return formatter.format(date).replace(', ', ' ');
 }
-
-const generateMockNews = (symbol: string, stockName: string): NewsItem[] => {
-  const news: NewsItem[] = [];
-  const rand = seededRandom(symbol);
-  const startDate = new Date('2024-07-01T00:00:00Z');
-  const today = new Date();
-  
-  const templates: Record<NewsCategory, Array<{ title: string; summary: string; sentiment: SentimentType }>> = {
-    Stock: [
-      { title: `${symbol} beats quarterly estimates as margins expand`, summary: `${stockName} reported earnings that surprised analysts, driven by operational efficiencies.`, sentiment: 'Bullish' },
-      { title: `Internal memo reveals ${symbol} pivoting strategy towards AI`, summary: `Leadership at ${symbol} is reallocating resources to accelerate long-term growth initiatives.`, sentiment: 'Bullish' },
-      { title: `${symbol} faces legal hurdle in core business segment`, summary: `Regulatory bodies are reviewing certain practices at ${stockName} that might impact near-term guidance.`, sentiment: 'Bearish' },
-      { title: `${symbol} CEO discusses future roadmap in latest interview`, summary: `The executive provided insights into how ${stockName} plans to maintain its competitive moat.`, sentiment: 'Neutral' },
-    ],
-    Industry: [
-      { title: `New competition emerges in ${symbol}'s primary market`, summary: `A well-funded startup is challenging ${stockName}'s market share in key demographics.`, sentiment: 'Bearish' },
-      { title: `Industry-wide supply chain bottleneck easing`, summary: `Logistics data suggests that components for companies like ${symbol} are moving faster.`, sentiment: 'Bullish' },
-      { title: `Major tech breakthrough could redefine ${symbol}'s sector`, summary: `Researchers have unveiled a new platform that could significantly lower barriers to entry.`, sentiment: 'Neutral' },
-      { title: `Global demand for tech services reaches record highs`, summary: `Consumer and enterprise spending trends favor the ecosystem inhabited by ${symbol}.`, sentiment: 'Bullish' },
-    ],
-    Macro: [
-      { title: `Inflation data prints lower than expected, tech rallies`, summary: `CPI reports provide relief for growth stocks like ${symbol} as rate expectations shift.`, sentiment: 'Bullish' },
-      { title: `Geopolitical tensions weigh on multinational tech giants`, summary: `Trade frictions between major economies create uncertainty for ${stockName}'s global supply chain.`, sentiment: 'Bearish' },
-      { title: `Central bank maintains interest rates at latest meeting`, summary: `The steady rate environment allows companies like ${symbol} to forecast capital expenses with more certainty.`, sentiment: 'Neutral' },
-      { title: `Labor market remains tight across high-tech industries`, summary: `Sustained wage growth continues to be a factor for large-scale employers like ${stockName}.`, sentiment: 'Neutral' },
-    ],
-    Sentiment: [
-      { title: `Retail investors show renewed interest in ${symbol}`, summary: `Social media sentiment scores for ${symbol} have hit multi-month highs this week.`, sentiment: 'Bullish' },
-      { title: `Institutional funds trimming exposure to ${symbol}`, summary: `Latest 13F filings show some major hedge funds reducing their position in ${stockName}.`, sentiment: 'Bearish' },
-      { title: `Options market suggests high volatility for ${symbol}`, summary: `Implied volatility spikes as traders hedge their bets ahead of the upcoming catalyst.`, sentiment: 'Neutral' },
-      { title: `Analyst consensus shifts to 'Overweight' for ${symbol}`, summary: `Several major banks have upgraded their outlook on ${stockName} citing undervalued assets.`, sentiment: 'Bullish' },
-    ]
-  };
-
-  const intervalRanges = [
-    { min: 0, max: 1 },
-    { min: 1, max: 7 },
-    { min: 7, max: 30 },
-    { min: 30, max: 90 },
-    { min: 90, max: 180 },
-    { min: 180, max: (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) }
-  ];
-
-  CATEGORIES.forEach(cat => {
-    intervalRanges.forEach((range, rangeIdx) => {
-      for (let i = 0; i < 2; i++) {
-        const templateIdx = Math.floor(rand() * templates[cat].length);
-        const template = templates[cat][templateIdx];
-        const sourceIdx = Math.floor(rand() * SOURCES.length);
-        const source = SOURCES[sourceIdx];
-        const daysOffset = range.min + (rand() * (range.max - range.min));
-        const timestamp = new Date(today.getTime() - (daysOffset * 24 * 60 * 60 * 1000)).toISOString();
-        news.push({ id: `${symbol}-${cat}-${rangeIdx}-${i}`, symbol, timestamp, category: cat, source, title: template.title, summary: template.summary, sentiment: template.sentiment });
-      }
-    });
-  });
-  return news;
-};
-
-const GLOBAL_NEWS_BASE = [
-  { id: 'g1', symbol: 'ALL', timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), category: 'Macro' as NewsCategory, source: 'Bloomberg', title: 'Global Markets: CPI cooling faster than expected', summary: 'Latest figures suggest a pivot in monetary policy is becoming increasingly likely.', sentiment: 'Bullish' as SentimentType },
-  { id: 'g2', symbol: 'ALL', timestamp: new Date('2024-08-15T14:00:00Z').toISOString(), category: 'Industry' as NewsCategory, source: 'CNBC', title: 'Semiconductor shortage fears resurface', summary: 'Logistics delays are causing ripples in the global chip supply chain.', sentiment: 'Bearish' as SentimentType },
-];
 
 const PriceChart: React.FC<{ 
   stock: Stock, 
