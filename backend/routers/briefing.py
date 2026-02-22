@@ -35,8 +35,8 @@ async def get_briefing(
         logger.error(f"Request was cancelled: {ce}")
         raise HTTPException(status_code=499, detail="Request was cancelled by client")
     except Exception as e:
-        logger.error(f"Error generating briefing: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate briefing: {str(e)}")
+        logger.error("Error generating briefing: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/briefing/stock/{symbol}", tags=["Briefing"])
@@ -63,8 +63,8 @@ async def get_stock_briefing(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error generating stock briefing for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate briefing: {str(e)}")
+        logger.error("Error generating stock briefing for %s: %s", symbol, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/ai/summarize", response_model=AISummaryResponse, tags=["AI"])
@@ -74,8 +74,8 @@ async def generate_ai_summary(request: AISummaryRequest):
         response = await ai_summary_generator.summarize_items(items=request.items, context="market data")
         return response
     except Exception as e:
-        logger.error(f"Error generating AI summary: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")
+        logger.error("Error generating AI summary: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/ai/briefing-summary", response_model=AISummaryResponse, tags=["AI"])
@@ -98,5 +98,5 @@ async def get_briefing_ai_summary(
         )
         return response
     except Exception as e:
-        logger.error(f"Error generating AI briefing summary: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")
+        logger.error("Error generating AI briefing summary: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

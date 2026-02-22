@@ -122,7 +122,7 @@ async def post_macro_daily_impact(date: str, request: Request):
         )
     except Exception as e:
         logger.exception("Impact generation failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
     if report_id is None:
         raise HTTPException(status_code=502, detail="Impact report generation returned no id")
     report = get_impact_for_date(supabase, as_of_date=as_of, portfolio_id=portfolio_id)

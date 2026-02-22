@@ -33,8 +33,8 @@ async def get_stock_news(
             for a in articles
         ]
     except Exception as e:
-        logger.error(f"Error fetching stock news: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stock news: {str(e)}")
+        logger.error("Error fetching stock news: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/news/macro", response_model=List[MacroNewsItem], tags=["News"])
@@ -59,5 +59,5 @@ async def get_macro_news(
             for a in articles
         ]
     except Exception as e:
-        logger.error(f"Error fetching macro news: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch macro news: {str(e)}")
+        logger.error("Error fetching macro news: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

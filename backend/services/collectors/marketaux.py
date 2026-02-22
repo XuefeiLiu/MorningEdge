@@ -167,7 +167,7 @@ class MarketauxCollector(BaseCollector):
                 try:
                     error_body = e.response.json()
                     logger.error(f"Marketaux API 400 error: {error_body}")
-                except:
+                except Exception:
                     logger.error(f"Marketaux API 400 error: {e.response.text}")
             else:
                 logger.error(f"Marketaux API HTTP error: {e}")

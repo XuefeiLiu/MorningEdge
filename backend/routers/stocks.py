@@ -22,8 +22,8 @@ async def get_nasdaq100_stocks():
         stocks = get_nasdaq100_stocks(use_api=False)
         return [StockInfo(ticker=s["ticker"], name=s["name"], exchange=s.get("exchange", "NASDAQ")) for s in stocks]
     except Exception as e:
-        logger.error(f"Error fetching NASDAQ 100 stocks: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch NASDAQ 100 stocks: {str(e)}")
+        logger.error("Error fetching NASDAQ 100 stocks: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/stocks/prices", response_model=List[StockPriceInfo], tags=["Stocks"])
@@ -177,8 +177,8 @@ async def get_stock_bars(
         logger.info(f"Returned {len(bars)} bars for {symbol_upper}")
         return HistoricalBarsResponse(symbol=symbol_upper, bars=bars, timeframe=timeframe)
     except Exception as e:
-        logger.error(f"Error fetching bars for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch bar data: {str(e)}")
+        logger.error("Error fetching bars for %s: %s", symbol, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/prices/5min", response_model=List[Price5MinItem], tags=["Prices"])
@@ -205,5 +205,5 @@ async def get_5min_prices(
         result.sort(key=lambda x: x.timestamp)
         return result
     except Exception as e:
-        logger.error(f"Error fetching 5min prices for {ticker}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch 5min prices: {str(e)}")
+        logger.error("Error fetching 5min prices for %s: %s", ticker, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

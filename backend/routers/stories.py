@@ -14,6 +14,8 @@ from backend.models import (
     DiscoverFeedItem, CustomStoryRequest, CustomStoryArticle, CustomStoryResponse,
     MacroSourceItem,
 )
+from backend.config import ASK_MAX_CONCURRENT
+from backend.storage.supabase_client import get_supabase_client
 from backend.utils.helpers import (
     parse_datetime_param, parse_latest_from_event_time_evidence,
     filing_display_title, looks_like_table, impact_score_to_level,
@@ -23,16 +25,19 @@ from backend.utils.helpers import (
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Ask (custom story) concurrency cap; lazy-initialized from ASK_MAX_CONCURRENT
-_ask_semaphore: Optional[asyncio.Semaphore] = None
 
+def get_client_ip(request: Request) -> str:
+    """Extract client IP, checking proxy headers first."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    return request.client.host if request.client else "unknown"
 
-def _get_ask_semaphore() -> Optional[asyncio.Semaphore]:
-    global _ask_semaphore
-    if _ask_semaphore is None:
-        from backend.config import ASK_MAX_CONCURRENT
-        _ask_semaphore = asyncio.Semaphore(ASK_MAX_CONCURRENT) if ASK_MAX_CONCURRENT > 0 else None
-    return _ask_semaphore
+# Ask (custom story) concurrency cap
+_ask_semaphore = asyncio.Semaphore(ASK_MAX_CONCURRENT) if ASK_MAX_CONCURRENT > 0 else None
 
 
 # ============== Overnight Window ==============
@@ -53,7 +58,6 @@ async def get_overnight_stories(
     end_date: Optional[str] = Query(None, description="End date ISO8601 (inclusive)"),
 ):
     """List overnight pipeline stories for a ticker."""
-    from backend.storage.supabase_client import get_supabase_client
     try:
         supabase = get_supabase_client()
         t = ticker.strip().upper()
@@ -113,14 +117,13 @@ async def get_overnight_stories(
         out.sort(key=lambda x: (x.latest_article_published_at or _epoch), reverse=True)
         return out
     except Exception as e:
-        logger.error("Error fetching overnight stories for %s: %s", ticker, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error fetching overnight stories for %s: %s", ticker, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/overnight-stories/{story_id}/articles", response_model=List[StorylineArticleResponse], tags=["Overnight Stories"])
 async def get_overnight_story_articles(story_id: str):
     """List articles linked to an overnight story."""
-    from backend.storage.supabase_client import get_supabase_client
     try:
         story_id_int = int(story_id)
     except (TypeError, ValueError):
@@ -158,14 +161,13 @@ async def get_overnight_story_articles(story_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Error fetching overnight story articles for %s: %s", story_id, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error fetching overnight story articles for %s: %s", story_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/overnight-stories/{story_id}/filing-chunks", response_model=List[FilingCitationItem], tags=["Overnight Stories"])
 async def get_overnight_story_filing_chunks(story_id: str):
     """Return SEC filing chunk(s) linked to an overnight story."""
-    from backend.storage.supabase_client import get_supabase_client
     try:
         story_id_int = int(story_id)
     except (TypeError, ValueError):
@@ -232,8 +234,8 @@ async def get_overnight_story_filing_chunks(story_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Error fetching overnight story filing chunks for %s: %s", story_id, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error fetching overnight story filing chunks for %s: %s", story_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============== Filing Formatting ==============
@@ -278,7 +280,6 @@ async def format_filing_chunk(request: FormatFilingChunkRequest):
 @router.get("/long-stories", response_model=List[LongStoryResponse], tags=["Long Stories"])
 async def get_long_stories(ticker: str = Query(..., description="Stock ticker symbol")):
     """List all long stories for a ticker."""
-    from backend.storage.supabase_client import get_supabase_client
     try:
         supabase = get_supabase_client()
         query = (
@@ -336,14 +337,13 @@ async def get_long_stories(ticker: str = Query(..., description="Stock ticker sy
     except Exception as e:
         if "does not exist" in str(e).lower():
             return []
-        logger.error("Error fetching long stories for %s: %s", ticker, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error fetching long stories for %s: %s", ticker, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/long-stories/{long_story_id}/timeline", response_model=StorylineTimelineResponse, tags=["Long Stories"])
 async def get_long_story_timeline(long_story_id: str):
     """Returns articles linked to a long story grouped by month."""
-    from backend.storage.supabase_client import get_supabase_client
     try:
         story_id_int = int(long_story_id)
     except (TypeError, ValueError):
@@ -401,8 +401,8 @@ async def get_long_story_timeline(long_story_id: str):
     except Exception as e:
         if "does not exist" in str(e).lower():
             raise HTTPException(status_code=404, detail="Long story or table not found")
-        logger.error("Error fetching long story timeline for %s: %s", long_story_id, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error fetching long story timeline for %s: %s", long_story_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============== Discover Feed ==============
@@ -414,7 +414,6 @@ async def get_discover_feed(
     top: int = Query(10, ge=1, le=30),
 ):
     """Feed for Discover tab: most impactful storylines and long stories."""
-    from backend.storage.supabase_client import get_supabase_client
     from backend.storage.stocks_query import get_stocks
     try:
         supabase = get_supabase_client()
@@ -480,8 +479,8 @@ async def get_discover_feed(
             for x in items
         ]
     except Exception as e:
-        logger.error("Error fetching discover feed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error fetching discover feed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============== Ask (Custom Story) ==============
@@ -490,12 +489,12 @@ async def get_discover_feed(
 async def create_custom_story(request: CustomStoryRequest, http_request: Request):
     """User-created story: answer a question using relevant articles."""
     from backend.services.ask_limits import check_ask_limits
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     limited = await check_ask_limits(client_ip)
     if limited:
         retry_after, detail = limited
         raise HTTPException(status_code=429, detail=detail, headers={"Retry-After": str(retry_after)})
-    sem = _get_ask_semaphore()
+    sem = _ask_semaphore
     if sem:
         await sem.acquire()
     try:
@@ -511,7 +510,6 @@ async def _create_custom_story_impl(request: CustomStoryRequest, client_ip: str)
         CUSTOM_STORY_QUERY_MAX_CHARS, RAG_TOP_K_CANDIDATES,
         CUSTOM_STORY_MAX_TOKENS, CUSTOM_STORY_CONTEXT_ARTICLES, CUSTOM_STORY_ARTICLE_SUMMARY_CHARS,
     )
-    from backend.storage.supabase_client import get_supabase_client
     from backend.storage.embedding_utils import get_embeddings
     from backend.storage.stocks_query import get_stock, get_all_stocks
     from backend.storage.macro_brief_by_asset_query import get_all_briefs_for_date

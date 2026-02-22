@@ -180,7 +180,7 @@ class MassiveCollector(BaseCollector):
                 try:
                     error_body = e.response.json()
                     logger.error(f"Massive API 400 error for {symbol}: {error_body}")
-                except:
+                except Exception:
                     logger.error(f"Massive API 400 error for {symbol}: {e.response.text}")
             else:
                 logger.error(f"Massive API HTTP error for {symbol}: {e}")
@@ -189,7 +189,7 @@ class MassiveCollector(BaseCollector):
             try:
                 error_repr = repr(e)
                 logger.error(f"Unicode encoding error fetching from Massive API for {symbol}: {error_repr}")
-            except:
+            except Exception:
                 logger.error(f"Unicode encoding error fetching from Massive API for {symbol}: [Unable to format error]")
         except Exception as e:
             # Ensure error message is properly encoded for logging
