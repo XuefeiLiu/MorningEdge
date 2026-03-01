@@ -19,7 +19,8 @@ from backend.storage.stocks_query import get_all_stocks
 from backend.services.embedding_service import get_embedding_service
 from backend.config import OPENAI_API_KEY, GEMINI_GENERATED_SOURCE
 
-from backend.pipeline.store_embed_data import run_store_embed_data
+from backend.pipeline.store_embed_data import run_store_embed_data, _run_filing_update
+from backend.services.collectors.sec_edgar import get_tickers_with_recent_filings
 from backend.pipeline.overnight_pipeline.anchors import _is_gemini_article
 from backend.pipeline.overnight_pipeline.clustering import run_clustering
 from backend.pipeline.overnight_pipeline.story_llm import story_llm_call
@@ -133,6 +134,43 @@ async def run_overnight_pipeline(
             "Store/embed done: articles_stored=%s",
             store_embed_stats.get("articles_stored", 0),
         )
+
+    # Step 1b: Targeted filing update — check SEC daily index for asof_date,
+    # fetch/chunk/store only filings for tickers that actually filed 10-K/10-Q.
+    # Runs unconditionally (daily index check is 1 cheap HTTP request).
+    filing_update_stats: Dict[str, int] = {"filing_discovery_found": 0, "filings_processed": 0, "chunks_stored": 0}
+    try:
+        all_tickers_set: set = set()
+        if tickers:
+            all_tickers_set = {t.strip().upper() for t in tickers}
+        else:
+            stocks = get_all_stocks(supabase)
+            all_tickers_set = {(s.get("ticker") or "").strip().upper() for s in stocks if (s.get("ticker") or "").strip()}
+        if all_tickers_set:
+            asof_end = datetime(asof_date.year, asof_date.month, asof_date.day, tzinfo=timezone.utc)
+            asof_start = asof_end - timedelta(hours=23, minutes=59, seconds=59)
+            tickers_that_filed = await get_tickers_with_recent_filings(
+                asof_start, asof_end, all_tickers_set,
+            )
+            filing_update_stats["filing_discovery_found"] = len(tickers_that_filed)
+            if tickers_that_filed:
+                logger.info(
+                    "Filing discovery: %s tickers filed 10-K/10-Q on %s: %s",
+                    len(tickers_that_filed), asof_date, ", ".join(sorted(tickers_that_filed)),
+                )
+                fu_stats = await _run_filing_update(
+                    supabase, sorted(tickers_that_filed), asof_start, asof_end,
+                )
+                filing_update_stats["filings_processed"] = fu_stats.get("filings_processed", 0)
+                filing_update_stats["chunks_stored"] = fu_stats.get("chunks_stored", 0)
+                logger.info(
+                    "Filing update done: %s filings, %s chunks stored",
+                    filing_update_stats["filings_processed"], filing_update_stats["chunks_stored"],
+                )
+            else:
+                logger.info("Filing discovery: no tickers filed 10-K/10-Q on %s", asof_date)
+    except Exception as e:
+        logger.warning("Targeted filing update failed: %s", e)
 
     end = datetime.now(timezone.utc)
     # Gemini-source articles: filter by created_at (ingestion time), same 3h window
@@ -387,6 +425,7 @@ async def run_overnight_pipeline(
     )
     return {
         **store_embed_stats,
+        **filing_update_stats,
         "stories_created": stories_created,
         "links_created": links_created,
         "filing_links": filing_links,
